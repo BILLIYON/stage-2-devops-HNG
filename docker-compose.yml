@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.25.0
+    container_name: nginx
+    ports:
+      - "${NGINX_PUBLIC_PORT:-8080}:80"  # public entrypoint
+    volumes:
+      - ./nginx/nginx.tmpl:/etc/nginx/templates/nginx.tmpl:ro
+      - ./nginx/render-and-run.sh:/docker-entrypoint.d/render-and-run.sh:ro
+    environment:
+      - ACTIVE_POOL=${ACTIVE_POOL}
+      - BLUE_SERVICE_HOST=app_blue
+      - GREEN_SERVICE_HOST=app_green
+      - BLUE_SERVICE_PORT=${PORT}
+      - GREEN_SERVICE_PORT=${PORT}
+    depends_on:
+      - app_blue
+      - app_green
+    networks:
+      - bluegreen-net
+
+  app_blue:
+    image: ${BLUE_IMAGE}
+    container_name: app_blue
+    environment:
+      - PORT=${PORT}
+      - APP_POOL=blue
+      - RELEASE_ID=${RELEASE_ID_BLUE}
+    ports:
+      - "${BLUE_HOST_PORT:-8081}:${PORT}"
+    networks:
+      - bluegreen-net
+
+  app_green:
+    image: ${GREEN_IMAGE}
+    container_name: app_green
+    environment:
+      - PORT=${PORT}
+      - APP_POOL=green
+      - RELEASE_ID=${RELEASE_ID_GREEN}
+    ports:
+      - "${GREEN_HOST_PORT:-8082}:${PORT}"
+    networks:
+      - bluegreen-net
+
+networks:
+  bluegreen-net:
+    driver: bridge
