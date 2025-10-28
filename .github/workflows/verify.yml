@@ -1,0 +1,25 @@
+name: Stage-2 Verify
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Optionally set from repository secrets if you want
+      # BLUE_IMAGE: ${{ secrets.BLUE_IMAGE }}
+      # GREEN_IMAGE: ${{ secrets.GREEN_IMAGE }}
+      # ACTIVE_POOL: ${{ secrets.ACTIVE_POOL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Compose
+        uses: docker/setup-buildx-action@v3
+      - name: Copy .env if provided in repo
+        run: |
+          if [ -f .env ]; then echo ".env found"; else echo "No .env present"; fi
+      - name: Start services
+        run: docker compose up -d
+      - name: Wait for services
+        run: sleep 4
+      - name: Run verification
+        run: ./verify_failover.sh
